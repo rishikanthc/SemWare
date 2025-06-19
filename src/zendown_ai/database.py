@@ -8,7 +8,7 @@ from lancedb.pydantic import LanceModel, Vector
 from lancedb.embeddings import EmbeddingFunctionRegistry
 from .embeddings import SentenceTransformerEmbeddings
 
-DB_PATH = os.getenv("LANCEDB_URI", ".lancedb")
+DB_PATH = os.getenv("LANCEDB_URI", "/db/.lancedb")
 TABLE_NAME = "zendown_documents"
 
 registry = EmbeddingFunctionRegistry.get_instance()
@@ -105,7 +105,7 @@ def semantic_search_documents(query_text: str, threshold: float, limit: int = 10
     query_vector_list = embedding_function.generate_embeddings(query_text)
     if not query_vector_list or not query_vector_list[0]:
         raise ValueError("Failed to generate embedding for the query text.")
-    query_vector = query_vector_list[0] # Get the first (and only) embedding
+    query_vector = query_vector_list[0]  # Get the first (and only) embedding
 
     # Perform search
     search_query = table.search(query_vector).metric("cosine").limit(limit)

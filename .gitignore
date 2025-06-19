@@ -3,7 +3,7 @@ __pycache__/
 *.py[oc]
 *.pyc
 /.lancedb
-/all-MiniLM-L6-v2
+# /all-MiniLM-L6-v2
 build/
 dist/
 wheels/
