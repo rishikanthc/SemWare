@@ -26,9 +26,14 @@ class UpsertResponse(BaseModel):
     id: str
 
 
+class SimilarDocument(BaseModel):
+    id: str
+    score: float
+
+
 class SearchResponse(BaseModel):
     query_id: str
-    similar_ids: list[str]
+    similar_results: list[SimilarDocument]
     count: int
 
 
@@ -71,9 +76,11 @@ async def api_search_similar_documents(request: SearchRequest):
             threshold=request.thresh,
             limit=request.limit
         )
+        # The search_similar_documents now returns List[Dict[str, Any]]
+        # which Pydantic can automatically convert to List[SimilarDocument]
         return SearchResponse(
             query_id=request.id,
-            similar_ids=similar_ids,
+            similar_results=similar_ids, # similar_ids is now the list of dicts
             count=len(similar_ids)
         )
     except ValueError as ve:

@@ -65,7 +65,7 @@ def upsert_document(document_id: str, content: str):
     print(f"Document '{document_id}' upserted successfully.")
 
 
-def search_similar_documents(document_id: str, threshold: float, limit: int = 10) -> list[str]:
+def search_similar_documents(document_id: str, threshold: float, limit: int = 10) -> list[dict[str, any]]:
     table = get_table()
     all_data_df = table.to_pandas()
     document_row_df = all_data_df[all_data_df['id'] == document_id]
@@ -78,10 +78,17 @@ def search_similar_documents(document_id: str, threshold: float, limit: int = 10
     search_query = table.search(query_vector).metric("cosine")
     search_query = search_query.where(f"id != '{document_id}'").limit(limit)
     results = search_query.to_list()
-    similar_docs_ids = []
+    similar_docs_with_scores = []
     for doc in results:
         cosine_distance = doc['_distance']
-        similarity = cosine_distance
-        if similarity >= threshold:
-            similar_docs_ids.append(doc["id"])
-    return similar_docs_ids
+        # For cosine distance, similarity = 1 - distance
+        # A smaller distance means higher similarity.
+        # LanceDB's cosine distance is 1 - cosine_similarity.
+        # So, similarity_score = 1 - cosine_distance (which is the actual cosine similarity)
+        similarity_score = 1.0 - cosine_distance
+        if similarity_score >= threshold:
+            similar_docs_with_scores.append({
+                "id": doc["id"],
+                "score": similarity_score
+            })
+    return similar_docs_with_scores
