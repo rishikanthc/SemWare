@@ -1,0 +1,14 @@
+[project]
+name = "zendown-ai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "sentence-transformers",
+  "lancedb",
+  "fastapi",
+  "uvicorn[standard]",     # Adding [standard] for common optional dependencies like websockets
+  "pandas>=2.3.0",
+  # "pylance>=0.29.0",
+]

@@ -1,0 +1,13 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+*.pyc
+/.lancedb
+/all-MiniLM-L6-v2
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
