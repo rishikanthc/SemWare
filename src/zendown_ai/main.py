@@ -5,7 +5,14 @@ from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import uvicorn
 
-from .database import init_db, upsert_document, search_similar_documents, TABLE_NAME, DB_PATH
+from .database import (
+    init_db,
+    upsert_document,
+    search_similar_documents,
+    semantic_search_documents,  # Added import
+    TABLE_NAME,
+    DB_PATH
+)
 
 
 class UpsertRequest(BaseModel):
@@ -15,6 +22,15 @@ class UpsertRequest(BaseModel):
 
 class SearchRequest(BaseModel):
     id: str
+    thresh: float = Field(..., ge=0.0, le=1.0,
+                          description="Similarity threshold (0.0 to 1.0)")
+    limit: int = Field(
+        10, gt=0, description="Maximum number of results to return")
+
+
+# Request model for semantic search
+class SemanticSearchRequest(BaseModel):
+    query_text: str = Field(..., min_length=1, description="Text to search for.")
     thresh: float = Field(..., ge=0.0, le=1.0,
                           description="Similarity threshold (0.0 to 1.0)")
     limit: int = Field(
@@ -33,6 +49,13 @@ class SimilarDocument(BaseModel):
 
 class SearchResponse(BaseModel):
     query_id: str
+    similar_results: list[SimilarDocument]
+    count: int
+
+
+# Response model for semantic search
+class SemanticSearchResponse(BaseModel):
+    query_text: str
     similar_results: list[SimilarDocument]
     count: int
 
@@ -90,6 +113,31 @@ async def api_search_similar_documents(request: SearchRequest):
         print(f"Error during search for id {request.id}: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to search for similar documents: {str(e)}")
+
+
+@app.post("/api/search/semantic/", response_model=SemanticSearchResponse)
+async def api_semantic_search_documents(request: SemanticSearchRequest):
+    try:
+        results = semantic_search_documents(
+            query_text=request.query_text,
+            threshold=request.thresh,
+            limit=request.limit
+        )
+        return SemanticSearchResponse(
+            query_text=request.query_text,
+            similar_results=results,
+            count=len(results)
+        )
+    except ValueError as ve:
+        print(f"ValueError during semantic search for query '{
+              request.query_text}': {ve}")
+        # Return 400 for bad input (e.g., empty query text, failed embedding)
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(f"Error during semantic search for query '{
+              request.query_text}': {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to perform semantic search: {str(e)}")
 
 
 @app.get("/")

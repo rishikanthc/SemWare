@@ -92,3 +92,33 @@ def search_similar_documents(document_id: str, threshold: float, limit: int = 10
                 "score": similarity_score
             })
     return similar_docs_with_scores
+
+
+def semantic_search_documents(query_text: str, threshold: float, limit: int = 10) -> list[dict[str, any]]:
+    table = get_table()
+    if not query_text:
+        raise ValueError("Query text cannot be empty.")
+
+    # Generate embedding for the query text
+    # The embedding_function.generate_embeddings typically returns a list of embeddings
+    # For a single query text, it will be a list containing one embedding.
+    query_vector_list = embedding_function.generate_embeddings(query_text)
+    if not query_vector_list or not query_vector_list[0]:
+        raise ValueError("Failed to generate embedding for the query text.")
+    query_vector = query_vector_list[0] # Get the first (and only) embedding
+
+    # Perform search
+    search_query = table.search(query_vector).metric("cosine").limit(limit)
+    results = search_query.to_list()
+
+    relevant_docs_with_scores = []
+    for doc in results:
+        cosine_distance = doc['_distance']
+        # For cosine distance, similarity_score = 1 - cosine_distance
+        similarity_score = 1.0 - cosine_distance
+        if similarity_score >= threshold:
+            relevant_docs_with_scores.append({
+                "id": doc["id"],
+                "score": similarity_score
+            })
+    return relevant_docs_with_scores
