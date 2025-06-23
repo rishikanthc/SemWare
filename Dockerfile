@@ -3,9 +3,9 @@
 FROM python:3.12-slim
 
 # Install build essentials (required for many PyPI packages)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential curl && \
-    rm -rf /var/lib/apt/lists/*
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     build-essential curl && \
+#     rm -rf /var/lib/apt/lists/*
 
 # Install uv package manager
 RUN pip install --upgrade pip && pip install uv

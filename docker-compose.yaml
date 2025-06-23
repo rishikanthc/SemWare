@@ -2,15 +2,16 @@ version: "3.9"
 
 services:
   zendown-ai:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/rishikanthc/zendown-ai:v0.1.0
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     ports:
       - "8000:8000"
     volumes:
       - ./db:/db
     environment:
       - LANCEDB_URI=/db
-    # Optionally: restart: unless-stopped
+    restart: unless-stopped
     # Optionally: command override here if you want (by default uses Dockerfile CMD)
 
