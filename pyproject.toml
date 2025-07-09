@@ -1,15 +1,15 @@
 [project]
-name = "zendown-ai"
+name = "semware"
 version = "0.1.0"
-description = "Add your description here"
+description = "A powerful, self-hosted semantic search framework built with LanceDB, FastAPI, and Hugging Face models. SemWare provides efficient document storage, automatic chunking, and fast vector search capabilities."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
   "sentence-transformers",
   "lancedb",
   "fastapi",
-  "uvicorn[standard]", # Adding [standard] for common optional dependencies like websockets
+  "uvicorn[standard]",     # Adding [standard] for common optional dependencies like websockets
   "pandas>=2.3.0",
-  "requests", # For testing API endpoints
+  "requests",              # For testing API endpoints
   # "pylance>=0.29.0",
 ]
