@@ -30,8 +30,9 @@ class UpsertRequest(BaseModel):
 
 class SearchRequest(BaseModel):
     id: str = Field(..., description="Document ID to find similar documents for")
-    threshold: float = Field(0.7, ge=0.0, le=1.0, description="Similarity threshold (0.0 to 1.0)")
-    limit: int = Field(10, gt=0, le=100, description="Maximum number of results to return")
+    threshold: Optional[float] = Field(None, ge=0.0, description="Minimum similarity score (0.0 to 1.0 for cosine)")
+    top_k: Optional[int] = Field(None, gt=0, le=1000, description="Maximum number of results to return")
+    distance_metric: str = Field("cosine", description="Distance metric: 'cosine' or 'l2' (euclidean)")
 
 
 class SemanticSearchRequest(BaseModel):
@@ -254,12 +255,14 @@ async def api_search_similar_documents(request: SearchRequest):
     Find documents similar to the given document.
     
     Uses the document's embeddings to find similar documents in the database.
+    Supports both threshold-based filtering and top_k limiting.
     """
     try:
         similar_docs = search_similar_documents(
             document_id=request.id,
             threshold=request.threshold,
-            limit=request.limit
+            top_k=request.top_k,
+            distance_metric=request.distance_metric
         )
         
         similar_results = [
@@ -273,8 +276,11 @@ async def api_search_similar_documents(request: SearchRequest):
             count=len(similar_results)
         )
     except ValueError as ve:
-        raise HTTPException(status_code=404, detail=str(ve))
+        print(f"ValueError during similar search for document '{request.id}': {ve}")
+        # Return 400 for bad input (e.g., invalid parameters, document not found)
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
+        print(f"Error during similar search for document '{request.id}': {e}")
         raise HTTPException(status_code=500, detail=f"Failed to search for similar documents: {str(e)}")
 
 

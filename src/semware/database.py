@@ -286,9 +286,39 @@ def delete_document(document_id: str) -> bool:
     return True
 
 
-def search_similar_documents(document_id: str, threshold: float = 0.7, limit: int = 10) -> List[Dict[str, Any]]:
-    """Find documents similar to the given document"""
+def search_similar_documents(
+    document_id: str, 
+    threshold: float = None, 
+    top_k: int = None, 
+    distance_metric: str = "cosine"
+) -> List[Dict[str, Any]]:
+    """
+    Find documents similar to the given document with configurable parameters.
+    
+    Args:
+        document_id: ID of the document to find similar documents for
+        threshold: Minimum similarity score (0.0 to 1.0 for cosine, any positive value for l2)
+        top_k: Maximum number of results to return
+        distance_metric: Distance metric to use ("cosine" or "l2")
+    
+    Returns:
+        List of documents with their similarity scores
+    
+    Raises:
+        ValueError: If both threshold and top_k are specified, or invalid parameters
+    """
     chunks_table, _ = get_tables()
+    
+    # Validate distance metric
+    if distance_metric not in ["cosine", "l2"]:
+        raise ValueError("Distance metric must be 'cosine' or 'l2' (euclidean)")
+    
+    # Validate threshold and top_k parameters
+    if threshold is not None and top_k is not None:
+        raise ValueError(
+            "Cannot specify both 'threshold' and 'top_k' parameters. "
+            "Please use either threshold-based filtering or top_k limiting, not both."
+        )
     
     # Get document chunks
     document_chunks = get_document_chunks(document_id)
@@ -296,36 +326,69 @@ def search_similar_documents(document_id: str, threshold: float = 0.7, limit: in
     if not document_chunks:
         raise ValueError(f"Document with id '{document_id}' not found or has no chunks.")
     
-    # Use the first chunk as the query vector (or average of all chunks)
-    query_vector = document_chunks[0]['vector']
+    # Aggregate document embeddings by summing them up
+    if len(document_chunks) == 1:
+        # Single chunk document
+        query_vector = document_chunks[0]['vector']
+    else:
+        # Multi-chunk document: sum all embeddings
+        query_vector = [0.0] * len(document_chunks[0]['vector'])
+        for chunk in document_chunks:
+            for i, val in enumerate(chunk['vector']):
+                query_vector[i] += val
+    
+    # Determine search limit based on parameters
+    search_limit = 1000  # Large limit to get all potential matches
+    if top_k is not None:
+        search_limit = max(top_k * 5, 100)  # Get more results than needed for better aggregation
     
     # Search for similar chunks
-    search_query = chunks_table.search(query_vector).metric("cosine")
-    search_query = search_query.where(f"document_id != '{document_id}'").limit(limit * 2)  # Get more to filter by threshold
+    search_query = chunks_table.search(query_vector).metric(distance_metric)
+    search_query = search_query.where(f"document_id != '{document_id}'").limit(search_limit)
     
     results = search_query.to_list()
     
-    # Group by document and calculate average similarity
+    # Group by document and aggregate scores
     document_scores = {}
     
     for result in results:
         doc_id = result['document_id']
-        similarity_score = result['_distance']
+        distance = result['_distance']
         
-        if similarity_score >= threshold:
-            if doc_id not in document_scores:
-                document_scores[doc_id] = []
-            document_scores[doc_id].append(similarity_score)
+        # Convert distance to similarity score
+        if distance_metric == "cosine":
+            # For cosine distance: similarity = 1 - distance
+            similarity_score = 1.0 - distance
+        else:  # l2 (euclidean)
+            # For euclidean distance: convert to similarity using exponential decay
+            # This gives higher scores for smaller distances
+            similarity_score = 1.0 / (1.0 + distance)
+        
+        if doc_id not in document_scores:
+            document_scores[doc_id] = []
+        document_scores[doc_id].append(similarity_score)
     
-    # Calculate average scores and sort
-    similar_docs = []
+    # Aggregate scores per document (using mean aggregation)
+    aggregated_docs = []
     for doc_id, scores in document_scores.items():
+        # Use mean aggregation for document-level similarity
         avg_score = sum(scores) / len(scores)
-        similar_docs.append({"id": doc_id, "score": avg_score})
+        aggregated_docs.append({"id": doc_id, "score": avg_score})
     
-    # Sort by score and limit results
-    similar_docs.sort(key=lambda x: x['score'], reverse=True)
-    return similar_docs[:limit]
+    # Sort by score (highest first)
+    aggregated_docs.sort(key=lambda x: x['score'], reverse=True)
+    
+    # Apply filtering based on parameters
+    if threshold is not None:
+        # Filter by threshold
+        filtered_docs = [doc for doc in aggregated_docs if doc['score'] >= threshold]
+        return filtered_docs
+    elif top_k is not None:
+        # Return top_k results
+        return aggregated_docs[:top_k]
+    else:
+        # Return all results (default behavior)
+        return aggregated_docs
 
 
 def semantic_search_documents(
