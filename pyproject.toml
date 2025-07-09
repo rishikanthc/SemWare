@@ -8,7 +8,8 @@ dependencies = [
   "sentence-transformers",
   "lancedb",
   "fastapi",
-  "uvicorn[standard]",     # Adding [standard] for common optional dependencies like websockets
+  "uvicorn[standard]", # Adding [standard] for common optional dependencies like websockets
   "pandas>=2.3.0",
+  "requests", # For testing API endpoints
   # "pylance>=0.29.0",
 ]

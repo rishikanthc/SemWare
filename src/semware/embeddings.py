@@ -1,4 +1,6 @@
-# zendown_ai/embeddings.py
+"""
+Embeddings module for SemWare
+"""
 
 from lancedb.embeddings.registry import register
 from lancedb.embeddings import TextEmbeddingFunction
@@ -40,8 +42,7 @@ class SentenceTransformerEmbeddings(TextEmbeddingFunction):
                 try:
                     self._ndims = self._model.get_sentence_embedding_dimension()
                 except Exception as e:
-                    print(f"Warning: Could not determine embedding dimension: {
-                          e}. Defaulting to 384.")
+                    print(f"Warning: Could not determine embedding dimension: {e}. Defaulting to 384.")
                     self._ndims = 384
         return self._ndims
 
@@ -53,4 +54,4 @@ class SentenceTransformerEmbeddings(TextEmbeddingFunction):
         return ["text"]
 
     def model_name(self):
-        return self._name
+        return self._name 

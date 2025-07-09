@@ -1246,6 +1246,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "lancedb" },
     { name = "pandas" },
+    { name = "requests" },
     { name = "sentence-transformers" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -1255,6 +1256,7 @@ requires-dist = [
     { name = "fastapi" },
     { name = "lancedb" },
     { name = "pandas", specifier = ">=2.3.0" },
+    { name = "requests" },
     { name = "sentence-transformers" },
     { name = "uvicorn", extras = ["standard"] },
 ]
