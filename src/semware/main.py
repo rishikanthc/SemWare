@@ -2,7 +2,7 @@
 Main FastAPI application for SemWare
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Request
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 from typing import List, Optional, Dict, Any
@@ -20,6 +20,7 @@ from .database import (
     DB_PATH,
     TABLE_NAME
 )
+from .auth import api_key_auth
 
 
 # Request Models
@@ -147,7 +148,10 @@ async def health_check():
 
 
 @app.post("/api/documents/upsert", response_model=UpsertResponse)
-async def api_upsert_document(request: UpsertRequest):
+async def api_upsert_document(
+    request: UpsertRequest, 
+    api_key: str = Depends(api_key_auth)
+):
     """
     Create or update a document with embeddings.
     
@@ -171,7 +175,7 @@ async def api_upsert_document(request: UpsertRequest):
 
 
 @app.get("/api/documents", response_model=List[str])
-async def api_get_all_document_ids():
+async def api_get_all_document_ids(api_key: str = Depends(api_key_auth)):
     """Get all document IDs"""
     try:
         return get_all_document_ids()
@@ -180,7 +184,10 @@ async def api_get_all_document_ids():
 
 
 @app.get("/api/documents/{document_id}", response_model=DocumentInfo)
-async def api_get_document_content(document_id: str):
+async def api_get_document_content(
+    document_id: str, 
+    api_key: str = Depends(api_key_auth)
+):
     """Get document content by ID"""
     try:
         from .database import get_document_metadata
@@ -204,7 +211,10 @@ async def api_get_document_content(document_id: str):
 
 
 @app.get("/api/documents/{document_id}/embeddings", response_model=DocumentEmbeddingsResponse)
-async def api_get_document_embeddings(document_id: str):
+async def api_get_document_embeddings(
+    document_id: str, 
+    api_key: str = Depends(api_key_auth)
+):
     """Get all embeddings for a document"""
     try:
         embeddings = get_document_embeddings(document_id)
@@ -231,7 +241,10 @@ async def api_get_document_embeddings(document_id: str):
 
 
 @app.delete("/api/documents/{document_id}", response_model=DeleteResponse)
-async def api_delete_document(document_id: str):
+async def api_delete_document(
+    document_id: str, 
+    api_key: str = Depends(api_key_auth)
+):
     """Delete a document and all its embeddings"""
     try:
         deleted = delete_document(document_id)
@@ -250,7 +263,10 @@ async def api_delete_document(document_id: str):
 
 
 @app.post("/api/search/similar", response_model=SearchResponse)
-async def api_search_similar_documents(request: SearchRequest):
+async def api_search_similar_documents(
+    request: SearchRequest, 
+    api_key: str = Depends(api_key_auth)
+):
     """
     Find documents similar to the given document.
     
@@ -285,7 +301,10 @@ async def api_search_similar_documents(request: SearchRequest):
 
 
 @app.post("/api/search/semantic", response_model=SemanticSearchResponse)
-async def api_semantic_search_documents(request: SemanticSearchRequest):
+async def api_semantic_search_documents(
+    request: SemanticSearchRequest, 
+    api_key: str = Depends(api_key_auth)
+):
     """
     Perform semantic search across all documents.
     
